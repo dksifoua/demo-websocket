@@ -1,0 +1,24 @@
+import { UserAlreadyExistsError, UserNotFoundError } from "./error.ts"
+import type { User } from "./types.ts"
+
+const users: User[] = []
+
+export async function getUser(username: string): Promise<User> {
+    for (let user of users) {
+        if (username === user.username) {
+            return user
+        }
+    }
+
+    throw new UserNotFoundError(username)
+}
+
+export async function createUser(username: string, password: string): Promise<void> {
+    for (let user of users) {
+        if (username === user.username) {
+            throw new UserAlreadyExistsError(username)
+        }
+    }
+
+    users.push({ username, password})
+}
