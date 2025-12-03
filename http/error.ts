@@ -1,4 +1,4 @@
-import { HttpStatusCode } from "./http-status-codes.ts"
+import { HttpStatusCode } from "@http/index"
 
 class HttpError implements Bun.ErrorLike {
     readonly code?: string | undefined
@@ -34,5 +34,12 @@ export class HttpInternalServerError extends HttpError {
 
     constructor(message: string) {
         super(HttpStatusCode.INTERNAL_SERVER_ERROR.name, message, HttpStatusCode.INTERNAL_SERVER_ERROR.code)
+    }
+}
+
+export class HttpUnauthorizedError extends HttpError {
+
+    constructor(message: string) {
+        super(HttpStatusCode.UNAUTHORIZED.name, message, HttpStatusCode.UNAUTHORIZED.code)
     }
 }

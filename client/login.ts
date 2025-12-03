@@ -1,5 +1,5 @@
 import { parseArgs } from "node:util"
-import type { LoginResponse } from "../server/types.ts"
+import { HttpLoginRequestSchema, HttpLoginResponseSchema } from "@http/types.ts"
 
 const LOGIN_URL = "http://localhost:3000/login"
 
@@ -7,12 +7,14 @@ const { values } = parseArgs({
     args: Bun.argv,
     options: {
         username: {
+            short: 'u',
             type: "string",
-            short: 'u'
+            default: "test"
         },
         password: {
+            short: 'p',
             type: "string",
-            short: 'p'
+            default: "test"
         },
     },
     strict: true,
@@ -24,7 +26,7 @@ const password = values.password
 
 const httpRequest = new Request(LOGIN_URL, {
     method: "POST",
-    body: JSON.stringify({ username, password })
+    body: JSON.stringify(HttpLoginRequestSchema.parse({ username, password }))
 })
 const httpResponse = await fetch(httpRequest)
 if (httpResponse.status !== 200) {
@@ -32,5 +34,5 @@ if (httpResponse.status !== 200) {
     process.exit(1)
 }
 
-const { token } = await httpResponse.json() as LoginResponse
-console.log(`Successfully logged to the chat server. Access Token: ${token}`)
+const { token } = HttpLoginResponseSchema.parse(await httpResponse.json())
+console.log(`Response code: ${httpResponse.status} - Access Token: ${token}`)

@@ -1,5 +1,12 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@auth/*": ["./auth/*"],
+      "@http/*": ["./http/*"],
+      "@user/*": ["./user/*"],
+    },
     // Environment setup & latest features
     "lib": ["ESNext"],
     "target": "ESNext",
