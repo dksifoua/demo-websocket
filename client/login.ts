@@ -28,7 +28,7 @@ const httpRequest = new Request(LOGIN_URL, {
 })
 const httpResponse = await fetch(httpRequest)
 if (httpResponse.status !== 200) {
-    console.error(await httpResponse.text())
+    console.error(`Error ${httpResponse.status}: ${await httpResponse.text()}`)
     process.exit(1)
 }
 

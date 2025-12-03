@@ -3,7 +3,7 @@ const WEB_SOCKET_URL = "ws://localhost:3000/ws"
 
 // const ws = new WebSocket("ws://localhost:3000", {
 //     headers: {
-//         "X-WebSocket-Token": token
+//         "X-Access-Token": token
 //     }
 // })
 //

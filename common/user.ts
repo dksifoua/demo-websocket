@@ -1,8 +1,18 @@
 import { UserAlreadyExistsError, UserNotFoundError } from "./error.ts"
 import type { User } from "./types.ts"
 
-const users: User[] = []
+const users: User[] = [
+    {
+        username: "test",
+        password: "test"
+    }
+]
 
+/**
+ *
+ * @param username
+ * @throws UserNotFoundError
+ */
 export async function getUser(username: string): Promise<User> {
     for (let user of users) {
         if (username === user.username) {
@@ -13,6 +23,12 @@ export async function getUser(username: string): Promise<User> {
     throw new UserNotFoundError(username)
 }
 
+/**
+ *
+ * @param username
+ * @param password
+ * @throws UserAlreadyExistsError
+ */
 export async function createUser(username: string, password: string): Promise<void> {
     for (let user of users) {
         if (username === user.username) {

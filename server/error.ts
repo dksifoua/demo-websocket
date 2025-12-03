@@ -22,3 +22,17 @@ export class HttpBadRequestError extends HttpError {
         super(HttpStatusCode.BAD_REQUEST.name, message, HttpStatusCode.BAD_REQUEST.code)
     }
 }
+
+export class HttpNotFoundError extends HttpError {
+
+    constructor(message: string) {
+        super(HttpStatusCode.NOT_FOUND.name, message, HttpStatusCode.NOT_FOUND.code)
+    }
+}
+
+export class HttpInternalServerError extends HttpError {
+
+    constructor(message: string) {
+        super(HttpStatusCode.INTERNAL_SERVER_ERROR.name, message, HttpStatusCode.INTERNAL_SERVER_ERROR.code)
+    }
+}
