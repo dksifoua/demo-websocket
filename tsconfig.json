@@ -6,6 +6,7 @@
       "@auth/*": ["./auth/*"],
       "@http/*": ["./http/*"],
       "@user/*": ["./user/*"],
+      "@util/*": ["./util/*"]
     },
     // Environment setup & latest features
     "lib": ["ESNext"],

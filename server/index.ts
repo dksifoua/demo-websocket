@@ -1,9 +1,14 @@
-import { HttpBadRequestError, HttpInternalServerError, HttpNotFoundError, HttpUnauthorizedError } from "@http/error.ts"
 import { UserAlreadyExistsError, UserNotFoundError } from "@user/error.ts"
-import { Auth, AuthenticationInvalidCredentialError } from "@/auth"
+import { Auth } from "@/auth"
 import { z } from "zod"
+import {
+    HttpAuthRequestSchema,
+    type HttpAuthResponse,
+    type HttpErrorResponse,
+    HttpErrorResponseSchema
+} from "@http/types.ts"
+import { AuthenticationInvalidCredentialError } from "@auth/error.ts"
 import { HttpStatusCode } from "@/http"
-import { HttpAuthRequestSchema, type HttpAuthResponse } from "@http/types.ts"
 
 const sessions: Map<string, string> = new Map()
 
@@ -12,39 +17,39 @@ const server = Bun.serve({
     routes: {
         "/auth": {
             POST: async (request: Bun.BunRequest<"/auth">): Promise<Response> => {
-                try {
-                    const { username, password, register } = HttpAuthRequestSchema.parse(await request.json())
+                const { username, password, register } = HttpAuthRequestSchema.parse(await request.json())
 
-                    if (register) await Auth.register(username, password)
-                    const { jwtId, jwt } = await Auth.authenticate(username, password)
+                if (register) await Auth.register(username, password)
+                const { jwtId, jwt } = await Auth.authenticate(username, password)
 
-                    sessions.set(username, jwtId)
+                sessions.set(username, jwtId)
 
-                    return Response.json({ token: jwt } as HttpAuthResponse, { status: 200 })
-                } catch (e) {
-                    await Bun.sleep(2500)
-
-                    if (e instanceof z.ZodError) throw new HttpBadRequestError("Username and password required!")
-                    if (e instanceof UserNotFoundError) throw new HttpNotFoundError(e.message)
-                    if (e instanceof UserAlreadyExistsError) throw new HttpBadRequestError(e.message)
-                    if (e instanceof AuthenticationInvalidCredentialError) throw new HttpUnauthorizedError(e.message)
-
-                    throw new HttpInternalServerError("Something wrong happened on the server!")
-                }
+                return Response.json({ token: jwt } as HttpAuthResponse, { status: 200 })
             }
         }
     },
-    error(err) {
-        console.error(`${new Date().toLocaleString()} - ${err.message}`)
+    error(e: Bun.ErrorLike): Response {
+        console.error(`${new Date().toLocaleString()} - ${e.message}`)
 
         switch (true) {
-            case err instanceof HttpBadRequestError:
-            case err instanceof HttpNotFoundError:
-            case err instanceof HttpUnauthorizedError:
-                return Response.json(err.message, { status: err.errno })
+            case e instanceof z.ZodError:
+                return Response.json({
+                    name: HttpStatusCode.BAD_REQUEST.name,
+                    message: "Request parsing error!",
+                    errno: HttpStatusCode.BAD_REQUEST.code
+                } as HttpErrorResponse, { status: HttpStatusCode.BAD_REQUEST.code })
+            case e instanceof UserNotFoundError:
+            case e instanceof UserAlreadyExistsError:
+            case e instanceof AuthenticationInvalidCredentialError:
+                const { name, message, errno } = HttpErrorResponseSchema.parse(e)
+                return Response.json({ name, message, errno }, { status: errno })
 
             default:
-                return Response.json({ status: HttpStatusCode.INTERNAL_SERVER_ERROR.code })
+                return Response.json({
+                    name: HttpStatusCode.INTERNAL_SERVER_ERROR.name,
+                    message: "Something wrong happened on the server!",
+                    errno: HttpStatusCode.INTERNAL_SERVER_ERROR.code
+                } as HttpErrorResponse, { status: HttpStatusCode.INTERNAL_SERVER_ERROR.code })
         }
     }
 })

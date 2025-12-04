@@ -1,15 +1,10 @@
 import type { User } from "@user/types.ts"
 import { userService } from "@user/user.service.ts"
 import { jsonWebToken } from "@/auth/jwt.ts"
+import { AuthenticationInvalidCredentialError } from "@auth/error.ts"
 
 const SECRET: string = crypto.randomUUID().toString()
 
-export class AuthenticationInvalidCredentialError extends Error {
-
-    constructor(message: string) {
-        super(message)
-    }
-}
 
 type AuthResponse = { jwtId: string, jwt: string }
 

@@ -1,23 +1,17 @@
-class UserError extends Error {
-    readonly username: string
+import { GlobalError } from "@util/error.ts"
+import { HttpStatusCode } from "@/http"
 
-    constructor(username: string, message: string) {
-        super(message)
 
-        this.username = username
+export class UserNotFoundError extends GlobalError {
+
+    constructor(username: string) {
+        super(HttpStatusCode.NOT_FOUND.name, `${username} not found!`, HttpStatusCode.NOT_FOUND.code)
     }
 }
 
-export class UserNotFoundError extends UserError {
+export class UserAlreadyExistsError extends GlobalError {
 
     constructor(username: string) {
-        super(username, `${username} not found!`)
-    }
-}
-
-export class UserAlreadyExistsError extends UserError {
-
-    constructor(username: string) {
-        super(username, `${username} already exists!`)
+        super(HttpStatusCode.BAD_REQUEST.name, `${username} already exists!`, HttpStatusCode.BAD_REQUEST.code)
     }
 }

@@ -4,9 +4,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "server": "bun --watch run server/index.ts",
+    "server": "bun run server/index.ts",
     "auth": "bun run client/auth.ts",
-    "chat": "bun --watch run client/chat.ts"
+    "chat": "bun run client/chat.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

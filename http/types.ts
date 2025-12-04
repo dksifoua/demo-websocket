@@ -8,6 +8,13 @@ export const HttpAuthRequestSchema = z.object({
 export type HttpAuthRequest = z.infer<typeof HttpAuthRequestSchema>
 
 export const HttpAuthResponseSchema = z.object({
-    token: z.jwt()
+    token: z.jwt(),
 })
 export type HttpAuthResponse = z.infer<typeof HttpAuthResponseSchema>
+
+export const HttpErrorResponseSchema = z.object({
+    name: z.string(),
+    message: z.string(),
+    errno: z.number(),
+})
+export type HttpErrorResponse = z.infer<typeof HttpErrorResponseSchema>

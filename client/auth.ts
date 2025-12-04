@@ -32,7 +32,7 @@ const httpRequest = new Request(`${BASE_URL}/auth`, {
 })
 const httpResponse = await fetch(httpRequest)
 if (httpResponse.status !== 200) {
-    console.error(`Error ${httpResponse.status}: ${await httpResponse.text()}`)
+    console.error(await httpResponse.json())
     process.exit(1)
 }
 
