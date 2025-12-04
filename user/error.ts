@@ -18,6 +18,6 @@ export class UserNotFoundError extends UserError {
 export class UserAlreadyExistsError extends UserError {
 
     constructor(username: string) {
-        super(username, `${username} not found!`)
+        super(username, `${username} already exists!`)
     }
 }

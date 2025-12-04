@@ -11,6 +11,8 @@ export class AuthenticationInvalidCredentialError extends Error {
     }
 }
 
+type AuthResponse = { jwtId: string, jwt: string }
+
 /**
  *
  * @param username
@@ -18,7 +20,7 @@ export class AuthenticationInvalidCredentialError extends Error {
  * @throws AuthenticationInvalidCredentialError
  * @Throws UserNotFoundError
  */
-export async function authenticate(username: string, password: string): Promise<{ jwtId: string, jwt: string }> {
+export async function authenticate(username: string, password: string): Promise<AuthResponse> {
     const user: User = await userService.getUser(username)
     if (user.password !== password) {
         throw new AuthenticationInvalidCredentialError("Wrong password!")
@@ -28,4 +30,18 @@ export async function authenticate(username: string, password: string): Promise<
     const jwt: string = await jsonWebToken.create(jwtId, username, SECRET)
 
     return { jwtId, jwt }
+}
+
+
+/**
+ *
+ * @param username
+ * @param password
+ * @throws AuthenticationInvalidCredentialError
+ * @Throws UserAlreadyExistsError
+ */
+export async function register(username: string, password: string): Promise<AuthResponse> {
+    await userService.createUser(username, password)
+
+    return authenticate(username, password)
 }

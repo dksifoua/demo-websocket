@@ -1,7 +1,7 @@
 import { parseArgs } from "node:util"
-import { HttpLoginRequestSchema, HttpLoginResponseSchema } from "@http/types.ts"
+import { HttpAuthRequestSchema, HttpAuthResponseSchema } from "@http/types.ts"
 
-const LOGIN_URL = "http://localhost:3000/login"
+const BASE_URL = "http://localhost:3000/"
 
 const { values } = parseArgs({
     args: Bun.argv,
@@ -16,17 +16,21 @@ const { values } = parseArgs({
             type: "string",
             default: "test"
         },
+        register: {
+            short: 'r',
+            type: "boolean",
+            default: false
+        },
     },
     strict: true,
     allowPositionals: true,
 })
 
-const username = values.username
-const password = values.password
+const { username, password, register } = values
 
-const httpRequest = new Request(LOGIN_URL, {
+const httpRequest = new Request(register ? `${BASE_URL}/register` : `${BASE_URL}/login`, {
     method: "POST",
-    body: JSON.stringify(HttpLoginRequestSchema.parse({ username, password }))
+    body: JSON.stringify(HttpAuthRequestSchema.parse({ username, password }))
 })
 const httpResponse = await fetch(httpRequest)
 if (httpResponse.status !== 200) {
@@ -34,5 +38,5 @@ if (httpResponse.status !== 200) {
     process.exit(1)
 }
 
-const { token } = HttpLoginResponseSchema.parse(await httpResponse.json())
+const { token } = HttpAuthResponseSchema.parse(await httpResponse.json())
 console.log(`Response code: ${httpResponse.status} - Access Token: ${token}`)

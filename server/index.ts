@@ -1,9 +1,9 @@
 import { HttpBadRequestError, HttpInternalServerError, HttpNotFoundError, HttpUnauthorizedError } from "@http/error.ts"
-import { UserNotFoundError } from "@user/error.ts"
-import { authenticate, AuthenticationInvalidCredentialError } from "@/auth"
+import { UserAlreadyExistsError, UserNotFoundError } from "@user/error.ts"
+import { authenticate, AuthenticationInvalidCredentialError, register } from "@/auth"
 import { z } from "zod"
 import { HttpStatusCode } from "@/http"
-import { HttpLoginRequestSchema, type HttpLoginResponse } from "@http/types.ts"
+import { HttpAuthRequestSchema, type HttpAuthResponse } from "@http/types.ts"
 
 const sessions: Map<string, string> = new Map()
 
@@ -15,17 +15,41 @@ const server = Bun.serve({
                 const requestBody = await req.json()
 
                 try {
-                    const { username, password } = HttpLoginRequestSchema.parse(requestBody)
+                    const { username, password } = HttpAuthRequestSchema.parse(requestBody)
 
                     const { jwtId, jwt } = await authenticate(username, password)
                     sessions.set(username, jwtId)
 
-                    return Response.json({ token: jwt } as HttpLoginResponse, { status: 200 })
+                    return Response.json({ token: jwt } as HttpAuthResponse, { status: 200 })
                 } catch (e) {
                     await Bun.sleep(2500)
 
                     if (e instanceof z.ZodError) throw new HttpBadRequestError("Username and password required!")
                     if (e instanceof UserNotFoundError) throw new HttpNotFoundError(e.message)
+                    if (e instanceof AuthenticationInvalidCredentialError) throw new HttpUnauthorizedError(e.message)
+
+                    throw new HttpInternalServerError("Something wrong happened on the server!")
+                }
+            }
+        },
+        "/register": {
+            POST: async (req) => {
+                const requestBody = await req.json()
+
+                try {
+                    const { username, password } = HttpAuthRequestSchema.parse(requestBody)
+                    await register(username, password)
+
+                    const { jwtId, jwt } = await authenticate(username, password)
+                    sessions.set(username, jwtId)
+
+                    return Response.json({ token: jwt } as HttpAuthResponse, { status: 200 })
+                } catch (e) {
+                    await Bun.sleep(2500)
+
+                    if (e instanceof z.ZodError) throw new HttpBadRequestError("Username and password required!")
+                    if (e instanceof UserNotFoundError) throw new HttpNotFoundError(e.message)
+                    if (e instanceof UserAlreadyExistsError) throw new HttpBadRequestError(e.message)
                     if (e instanceof AuthenticationInvalidCredentialError) throw new HttpUnauthorizedError(e.message)
 
                     throw new HttpInternalServerError("Something wrong happened on the server!")

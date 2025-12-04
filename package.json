@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "server": "bun --watch run server/index.ts",
-    "login": "bun run client/login.ts",
+    "auth": "bun run client/auth.ts",
     "chat": "bun --watch run client/chat.ts"
   },
   "devDependencies": {
