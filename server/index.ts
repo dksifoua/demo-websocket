@@ -1,6 +1,6 @@
 import { HttpBadRequestError, HttpInternalServerError, HttpNotFoundError, HttpUnauthorizedError } from "@http/error.ts"
 import { UserAlreadyExistsError, UserNotFoundError } from "@user/error.ts"
-import { authenticate, AuthenticationInvalidCredentialError, register } from "@/auth"
+import { Auth, AuthenticationInvalidCredentialError } from "@/auth"
 import { z } from "zod"
 import { HttpStatusCode } from "@/http"
 import { HttpAuthRequestSchema, type HttpAuthResponse } from "@http/types.ts"
@@ -10,37 +10,14 @@ const sessions: Map<string, string> = new Map()
 const server = Bun.serve({
     port: 3000,
     routes: {
-        "/login": {
-            POST: async (req) => {
-                const requestBody = await req.json()
-
+        "/auth": {
+            POST: async (request: Bun.BunRequest<"/auth">): Promise<Response> => {
                 try {
-                    const { username, password } = HttpAuthRequestSchema.parse(requestBody)
+                    const { username, password, register } = HttpAuthRequestSchema.parse(await request.json())
 
-                    const { jwtId, jwt } = await authenticate(username, password)
-                    sessions.set(username, jwtId)
+                    if (register) await Auth.register(username, password)
+                    const { jwtId, jwt } = await Auth.authenticate(username, password)
 
-                    return Response.json({ token: jwt } as HttpAuthResponse, { status: 200 })
-                } catch (e) {
-                    await Bun.sleep(2500)
-
-                    if (e instanceof z.ZodError) throw new HttpBadRequestError("Username and password required!")
-                    if (e instanceof UserNotFoundError) throw new HttpNotFoundError(e.message)
-                    if (e instanceof AuthenticationInvalidCredentialError) throw new HttpUnauthorizedError(e.message)
-
-                    throw new HttpInternalServerError("Something wrong happened on the server!")
-                }
-            }
-        },
-        "/register": {
-            POST: async (req) => {
-                const requestBody = await req.json()
-
-                try {
-                    const { username, password } = HttpAuthRequestSchema.parse(requestBody)
-                    await register(username, password)
-
-                    const { jwtId, jwt } = await authenticate(username, password)
                     sessions.set(username, jwtId)
 
                     return Response.json({ token: jwt } as HttpAuthResponse, { status: 200 })
@@ -58,7 +35,7 @@ const server = Bun.serve({
         }
     },
     error(err) {
-        console.error(err.message)
+        console.error(`${new Date().toLocaleString()} - ${err.message}`)
 
         switch (true) {
             case err instanceof HttpBadRequestError:

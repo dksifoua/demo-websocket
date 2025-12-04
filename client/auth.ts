@@ -26,11 +26,9 @@ const { values } = parseArgs({
     allowPositionals: true,
 })
 
-const { username, password, register } = values
-
-const httpRequest = new Request(register ? `${BASE_URL}/register` : `${BASE_URL}/login`, {
+const httpRequest = new Request(`${BASE_URL}/auth`, {
     method: "POST",
-    body: JSON.stringify(HttpAuthRequestSchema.parse({ username, password }))
+    body: JSON.stringify(HttpAuthRequestSchema.parse(values))
 })
 const httpResponse = await fetch(httpRequest)
 if (httpResponse.status !== 200) {
