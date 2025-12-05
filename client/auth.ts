@@ -1,7 +1,7 @@
 import { parseArgs } from "node:util"
 import { HttpAuthRequestSchema, HttpAuthResponseSchema } from "@http/types.ts"
 
-const BASE_URL = "http://localhost:3000/"
+const AUTH_URL = "http://localhost:3000/auth"
 
 const { values } = parseArgs({
     args: Bun.argv,
@@ -26,7 +26,7 @@ const { values } = parseArgs({
     allowPositionals: true,
 })
 
-const httpRequest = new Request(`${BASE_URL}/auth`, {
+const httpRequest = new Request(AUTH_URL, {
     method: "POST",
     body: JSON.stringify(HttpAuthRequestSchema.parse(values))
 })

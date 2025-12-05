@@ -1,6 +1,6 @@
 import * as jose from "jose"
-import type { Nullable } from "../types.ts"
-import { HttpUnauthorizedError } from "../http/error.ts"
+import type { Nullable } from "@/types.ts"
+import { JwtInvalidAccessTokenError } from "@auth/error.ts"
 
 export class JsonWebToken {
     static readonly ISSUER: string = "auth.dksifoua.io"
@@ -12,10 +12,11 @@ export class JsonWebToken {
         this.encoder = new TextEncoder()
     }
 
-    async create(jwtId: string, username: string, secret: string): Promise<string> {
+    async create(username: string, secret: string): Promise<{ jwtId: string, jwt: string }> {
         const alg = "HS256"
         const subject: string = [JsonWebToken.ISSUER, username].join('/')
-        return new jose.SignJWT()
+        const jwtId = crypto.randomUUID().toString()
+        const signedJwt = new jose.SignJWT()
             .setIssuer(JsonWebToken.ISSUER)
             .setSubject(subject)
             .setAudience(JsonWebToken.AUDIENCE)
@@ -23,10 +24,19 @@ export class JsonWebToken {
             .setExpirationTime("1h")
             .setJti(jwtId)
             .setProtectedHeader({ alg })
-            .sign(this.encoder.encode(secret))
+
+        const jwt = await signedJwt.sign(this.encoder.encode(secret))
+
+        return { jwtId, jwt }
     }
 
-    async verify(jwtId : string, jwt: string, secret: string): Promise<{username: string}> {
+    /**
+     *
+     * @param jwt
+     * @param secret
+     * @throws JwtInvalidAccessTokenError
+     */
+    async verify(jwt: string, secret: string): Promise<{ jwtId: string, username: string }> {
         let payload: Nullable<jose.JWTPayload> = null
         try {
             ({ payload } = await jose.jwtVerify(jwt, this.encoder.encode(secret), {
@@ -34,15 +44,14 @@ export class JsonWebToken {
                 audience: JsonWebToken.AUDIENCE,
             }))
         } catch (e) {
-            throw new HttpUnauthorizedError("Invalid Access Token!")
+            throw new JwtInvalidAccessTokenError("Invalid Access Token!")
         }
 
-        if (payload && payload.jti === jwtId && payload.sub) {
-            const username: string = payload.sub
-            return { username }
+        if (payload && payload.jti && payload.sub) {
+            return { jwtId: payload.jti, username: payload.sub }
         }
 
-        throw new HttpUnauthorizedError("Invalid Access Token!")
+        throw new JwtInvalidAccessTokenError("Invalid Access Token!")
     }
 }
 
