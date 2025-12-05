@@ -32,9 +32,9 @@ const httpRequest = new Request(AUTH_URL, {
 })
 const httpResponse = await fetch(httpRequest)
 if (httpResponse.status !== 200) {
-    console.error(await httpResponse.json())
+    console.error(`[${new Date().toLocaleString()}] - ${await httpResponse.json()}`)
     process.exit(1)
 }
 
 const { token } = HttpAuthResponseSchema.parse(await httpResponse.json())
-console.log(`Response code: ${httpResponse.status} - Access Token: ${token}`)
+console.log(`[${new Date().toLocaleString()}] - Response code: ${httpResponse.status} - Access Token: ${token}`)

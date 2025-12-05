@@ -15,15 +15,17 @@ import {
 import { HttpStatusCode } from "@/http"
 import type { Server, ServerWebSocket } from "bun"
 import { jsonWebToken } from "@auth/jwt.ts"
+import { ChatExchangeMessageSchema, ChatExchangeMessageTypeEnum } from "@/chat"
 
 const ACCESS_SECRET: string = "a-string-secret-at-least-256-bits-long"
-const sessions: Map<string, string> = new Map()
+const HttpSessions: Map<string, string> = new Map()
 
 type WebSocketServerData = {
     jwtId: string,
     username: string,
     createdAt: Date,
 }
+const webSocketSessions: Map<string, ServerWebSocket<WebSocketServerData>> = new Map()
 
 const server: Server<WebSocketServerData> = Bun.serve({
     port: 3000,
@@ -31,7 +33,7 @@ const server: Server<WebSocketServerData> = Bun.serve({
         "/auth": {
             POST: async (request: Bun.BunRequest<"/auth">): Promise<Response> => {
                 const { username, password, register } = HttpAuthRequestSchema.parse(await request.json())
-                if (sessions.has(username)) {
+                if (HttpSessions.has(username)) {
                     throw new AuthUserAlreadyAuthenticatedError(`${username} is already authenticated!`)
                 }
 
@@ -40,8 +42,11 @@ const server: Server<WebSocketServerData> = Bun.serve({
                 }
                 const { jwtId, jwt } = await Auth.authenticate(username, password, ACCESS_SECRET)
 
-                sessions.set(username, jwtId)
-                setTimeout(() => sessions.delete(username), 1000 * 60 * 60)
+                HttpSessions.set(username, jwtId)
+                setTimeout(() => {
+                    console.log(`[${new Date().toLocaleString()}] - The ${username} access token expired!`)
+                    HttpSessions.delete(username)
+                }, 1000 * 60 * 60)
 
                 return Response.json({ token: jwt } as HttpAuthResponse, { status: 200 })
             }
@@ -53,7 +58,7 @@ const server: Server<WebSocketServerData> = Bun.serve({
             name: HttpStatusCode.NOT_FOUND.name,
             message: "Resource not found!",
             errno: HttpStatusCode.NOT_FOUND.code
-        } as HttpErrorResponse, {status: 404})
+        } as HttpErrorResponse, { status: 404 })
 
         const jwt: string = request.headers.get("X-Access-Token") || ""
         const { jwtId, username } = await jsonWebToken.verify(jwt, ACCESS_SECRET)
@@ -72,7 +77,7 @@ const server: Server<WebSocketServerData> = Bun.serve({
             case e instanceof z.ZodError:
                 return Response.json({
                     name: HttpStatusCode.BAD_REQUEST.name,
-                    message: "Request parsing error!",
+                    message: `${z.prettifyError(e)}`,
                     errno: HttpStatusCode.BAD_REQUEST.code
                 } as HttpErrorResponse, { status: HttpStatusCode.BAD_REQUEST.code })
             case e instanceof UserNotFoundError:
@@ -94,12 +99,40 @@ const server: Server<WebSocketServerData> = Bun.serve({
     websocket: {
         data: {} as WebSocketServerData,
         open: async (ws: ServerWebSocket<WebSocketServerData>): Promise<void> => {
+            webSocketSessions.set(ws.data.username, ws)
             ws.send(`server> Hello ${ws.data.username} from websocket!`)
         },
-        message: async (ws: ServerWebSocket<WebSocketServerData>, message: string | Buffer<ArrayBuffer>): Promise<void> => {
-            throw new Error("Function not implemented.")
+        message: async (ws: ServerWebSocket<WebSocketServerData>, message: string): Promise<void> => {
+            const exchangeMessage = ChatExchangeMessageSchema.parse(JSON.parse(message))
+            switch (true) {
+                case exchangeMessage.command === ChatExchangeMessageTypeEnum.SHOW_CONNECTED_USERS:
+                    ws.send(JSON.stringify(webSocketSessions.keys().toArray()))
+                    break
+                case exchangeMessage.command === ChatExchangeMessageTypeEnum.COUNT_CONNECTED_USERS:
+                    ws.send(`There is/are ${webSocketSessions.size} user(s) connected!`)
+                    break
+                case exchangeMessage.command === ChatExchangeMessageTypeEnum.IS_CONNECTED_USER:
+                    if (webSocketSessions.has(exchangeMessage.username)) {
+                        ws.send(`The user ${exchangeMessage.username} is connected!`)
+                    } else {
+                        ws.send(`The user ${exchangeMessage.username} is not connected!`)
+                    }
+                    break
+                case exchangeMessage.command === ChatExchangeMessageTypeEnum.DIRECT_MESSAGE:
+                    const sws = webSocketSessions.get(exchangeMessage.username)
+                    if (sws) {
+                        sws.send(`${ws.data.username}> ${exchangeMessage.content}`)
+                    } else {
+                        ws.send(`The user ${webSocketSessions.has(exchangeMessage.username)} is not connected!`)
+                    }
+                    break
+                default:
+                    ws.send("Invalid command!")
+            }
+
+            console.log(`[${new Date().toLocaleString()}] - ${ws.data.username}> ${JSON.stringify(exchangeMessage)}`)
         }
     }
 })
 
-console.log(`Server listening at ${server.url}`)
+console.log(`[${new Date().toLocaleString()}] - Server listening at ${server.url}`)

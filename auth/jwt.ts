@@ -1,6 +1,7 @@
 import * as jose from "jose"
 import type { Nullable } from "@/types.ts"
 import { JwtInvalidAccessTokenError } from "@auth/error.ts"
+import { z } from "zod"
 
 export class JsonWebToken {
     static readonly ISSUER: string = "auth.dksifoua.io"
@@ -48,7 +49,7 @@ export class JsonWebToken {
         }
 
         if (payload && payload.jti && payload.sub) {
-            return { jwtId: payload.jti, username: payload.sub }
+            return { jwtId: payload.jti, username: z.string().parse(payload.sub.split('/')[1]) }
         }
 
         throw new JwtInvalidAccessTokenError("Invalid Access Token!")
